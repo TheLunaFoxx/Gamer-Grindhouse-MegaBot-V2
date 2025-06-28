@@ -11,6 +11,7 @@ from pyrogram.enums import ChatMemberStatus
 
 load_dotenv()
 print("API_ID from env:", os.getenv("API_ID"))
+os.makedirs("/data", exist_ok=True)  # ensure volume directory exists
 
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
@@ -37,7 +38,7 @@ frees = {}
 verifying = {}
 approved_users = set()
 verification_map = {}
-FREES_LOG_FILE = "frees_log.txt"
+FREES_LOG_FILE = "/data/frees_log.txt"
 
 BOT_USER = None
 
