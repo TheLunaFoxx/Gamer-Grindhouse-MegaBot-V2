@@ -209,16 +209,5 @@ async def all_private(client, msg: Message):
 
 keep_alive()
 
-async def main():
-    await app.start()
-    me = await app.get_me()
-    print(f"✅ Logged in as {me.username} ({me.id})")
-    await set_bot_user()
-    await app.send_message(OWNER_ID, "👀 Bot is alive, this is a test message.")
-    print("📩 Sent alive confirmation to OWNER_ID")
-    print("🤖 MegaBot is alive and slaying!")
-    print("📬 Registered handlers:")
-    await asyncio.Event().wait()  # This keeps it alive like idle() used to
-
-asyncio.run(main())
+app.run()
 
