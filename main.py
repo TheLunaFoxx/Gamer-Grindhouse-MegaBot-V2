@@ -72,9 +72,6 @@ async def verify(_, msg: Message):
     username = msg.from_user.username or msg.from_user.first_name
     verifying[msg.from_user.id] = {'video': None, 'photo': None}
     await msg.reply_text(f"It's time to verify {username}!\n\n🎥 Please click the mic in the bottom right corner to change it to a camera. Then, <b>long-press the camera</b> to record a live video saying <b>today's date, your username, and 'verifying for Gamer Grindhouse'.</b>\n📸 Then send a <b>screenshot of your ID</b> or <b>18+ website profile <i>(Onlyfans, Fansly etc. Make sure your username is visible!)</i></b>.\n\nPlease send them <b>in this order</b> to ensure your information is sent to the owner correctly! ❤️", parse_mode=ParseMode.HTML)
-    await msg.reply_text("<b>Checking fedban status with @MissRose_Bot... 👮‍♀️</b>", parse_mode=ParseMode.HTML)
-    await app.send_message("MissRose_bot", f"/fbanstat @{username}")
-    await asyncio.sleep(2)
 
 @app.on_message(filters.private & filters.video_note)
 async def video_received(_, msg: Message):
