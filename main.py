@@ -247,10 +247,6 @@ async def view_frees_log(_, msg: Message):
     except Exception as e:
         await msg.reply(f"❌ Couldn't read the log: {e}")
 
-# --- GUI Setup ---
-# Create Flask app
-flask_app = Flask(__name__)
-
 # Basic GUI HTML Template
 gui_template = """
 <!DOCTYPE html>
