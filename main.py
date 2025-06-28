@@ -23,7 +23,7 @@ print("API_HASH:", API_HASH)
 print("BOT_TOKEN:", "HIDDEN" if BOT_TOKEN else "None")
 
 app = Client(
-    "/data/megabot",
+    "megabot",
     api_id=int(os.getenv("API_ID")),
     api_hash=os.getenv("API_HASH"),
     bot_token=os.getenv("BOT_TOKEN")
