@@ -8,8 +8,9 @@ from pyrogram.enums import ParseMode
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ChatMemberStatus
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, request, redirect, url_for, send_file, jsonify
 from shared import frees
+import io 
 
 # --- GUI Setup ---
 # Create Flask app
@@ -33,6 +34,12 @@ verification_map = {}
 FREES_LOG_FILE = "/data/frees_log.txt"
 group_names = {}
 BOT_USER = None
+
+# --- GUI Information ---
+group_icons = {
+    -1001234567890: "🎮",
+    -1009876543210: "💋",
+}
 
 if not API_ID or not API_HASH or not BOT_TOKEN:
     raise ValueError("❌ Missing API_ID, API_HASH, or BOT_TOKEN environment variables.")
@@ -169,11 +176,14 @@ async def free(_, msg: Message):
 
     try:
         target = await app.get_users(msg.command[1])
-        # 🌟 Cache user info for GUI display
+        chat_member = await app.get_chat_member(chat_id, target.id)
+
         user_info_cache[target.id] = {
             "first": target.first_name or "",
             "last": target.last_name or "",
             "username": target.username or None,
+            "is_admin": chat_member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER),
+            "is_bot": target.is_bot,
         }
     except:
         await msg.reply("❌ <b>Couldn't find that user.</b>", parse_mode=ParseMode.HTML)
@@ -241,6 +251,17 @@ async def auto_delete(_, msg: Message):
     if chat_id not in group_names:
         group_names[chat_id] = msg.chat.title or f"Group {chat_id}"
 
+    # ✅ Cache user info if not already stored
+    if user_id not in user_info_cache:
+        chat_member = await app.get_chat_member(chat_id, user_id)
+        user_info_cache[user_id] = {
+            "first": msg.from_user.first_name or "",
+            "last": msg.from_user.last_name or "",
+            "username": msg.from_user.username or None,
+            "is_admin": chat_member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER),
+            "is_bot": msg.from_user.is_bot,
+        }
+
     # Skip bots and owner
     if user_id == OWNER_ID or msg.from_user.is_bot:
         return
@@ -273,7 +294,22 @@ async def on_chat_member_update(_, event):
         return
 
     user = event.new_chat_member.user
+
+    if user.id not in user_info_cache:
+        try:
+            member = await app.get_chat_member(chat_id, user.id)
+            user_info_cache[user.id] = {
+                "first": user.first_name or "",
+                "last": user.last_name or "",
+                "username": user.username or None,
+                "is_admin": member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER),
+                "is_bot": user.is_bot,
+            }
+        except Exception as e:
+            print(f"[ERROR] Failed to cache member info for {user.id}: {e}")
+
     chat_id = event.chat.id
+
 
     # Only act on NEW joiners
     if (
@@ -355,6 +391,20 @@ gui_template = """
             margin-bottom: 1em;
         }
 
+        .filter-bar {
+            margin-bottom: 2em;
+        }
+
+        .filter-bar input {
+            padding: 0.4em;
+            font-size: 1em;
+            width: 250px;
+            border-radius: 6px;
+            border: 1px solid #555;
+            background: #1e1e1e;
+            color: #fff;
+        }
+
         .group {
             margin-bottom: 2em;
             border: 1px solid #333;
@@ -368,16 +418,42 @@ gui_template = """
             margin-bottom: 0.5em;
         }
 
+        .group .meta {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-bottom: 1em;
+        }
+
         .user {
             margin-left: 1em;
-            margin-bottom: 0.3em;
-            font-size: 1.1em;
-            padding-left: 0.5em;
-            border-left: 3px solid #ff5fcf;
+            margin-bottom: 0.6em;
+            font-size: 1em;
+            padding: 0.7em;
+            border-left: 4px solid #ff5fcf;
+            background-color: #1a1a1a;
+            border-radius: 5px;
+        }
+
+        .forever { border-left-color: #7fff7f; background-color: #193219; }
+        .admin   { border-left-color: #7fafff; background-color: #182c3a; }
+        .bot     { border-left-color: #c67fff; background-color: #2b1c37; }
+
+        .btn {
+            background: #ff5fcf;
+            color: #fff;
+            padding: 0.4em 1em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background: #ff85da;
         }
 
         .footer {
-            margin-top: 2em;
+            margin-top: 3em;
             font-size: 0.9em;
             color: #888;
             text-align: center;
@@ -387,27 +463,80 @@ gui_template = """
             color: #00ffc3;
         }
     </style>
+    <script>
+        function filterFrees() {
+            const input = document.getElementById("filterInput").value.toLowerCase();
+            const groups = document.getElementsByClassName("group");
+
+            for (const group of groups) {
+                const users = group.getElementsByClassName("user");
+                let groupMatch = false;
+
+                for (const user of users) {
+                    const text = user.innerText.toLowerCase();
+                    const match = text.includes(input);
+                    user.style.display = match ? "block" : "none";
+                    if (match) groupMatch = true;
+                }
+
+                group.style.display = groupMatch ? "block" : "none";
+            }
+        }
+
+        function confirmUnfree(chat_id) {
+            if (confirm("Are you sure you want to unfree EVERYONE in this group?!")) {
+                fetch(`/unfree_all/${chat_id}`).then(() => location.reload());
+            }
+        }
+
+        function exportList() {
+            window.location.href = "/export";
+        }
+    </script>
 </head>
 <body>
     <h1>👀 Frees Viewer</h1>
+
+    <div class="filter-bar">
+        🔍 <input type="text" id="filterInput" onkeyup="filterFrees()" placeholder="Filter by group or user...">
+        <button class="btn" onclick="exportList()">📤 Export List</button>
+    </div>
+
     {% if frees %}
         {% for chat_id, users in frees.items() %}
             <div class="group">
-                <h2>📢 {{ group_names.get(chat_id, 'Group ' ~ chat_id) }}</h2>
+                <h2>
+                    {% if group_icons.get(chat_id) %}
+                        {{ group_icons[chat_id] }}
+                    {% endif %}
+                    {{ group_names.get(chat_id, 'Group ' ~ chat_id) }}
+                </h2>
+                <div class="meta">
+                    👥 {{ users|length }} freed | 🆔 <code>{{ chat_id }}</code>
+                    <button class="btn" onclick="confirmUnfree({{ chat_id }})" style="float:right">❌ Unfree All</button>
+                </div>
                 {% for user_id, until in users.items() %}
-                    <div class="user">
-    🔓 <b>User ID:</b> {{ user_id }}<br>
-    {% set info = user_info_cache.get(user_id, {}) %}
-    <b>Name:</b> {{ info.get("first", "Unknown") }} {{ info.get("last", "") }}<br>
-    <b>Username:</b> {{ "@" ~ info["username"] if info.get("username") else "No username" }}<br>
-    <b>Free:</b> {% if until %}until {{ until }}{% else %}forever{% endif %}
-</div>
+                    {% set info = user_info_cache.get(user_id, {}) %}
+                    {% set tag = "forever" if not until else "" %}
+                    {% set tag = tag if tag else ("admin" if info.get("is_admin") else "bot" if info.get("is_bot") else "") %}
+                    <div class="user {{ tag }}">
+                        🔓 <b>User ID:</b> {{ user_id }}<br>
+                        <b>Name:</b> {{ info.get("first", "Unknown") }} {{ info.get("last", "") }}<br>
+                        <b>Username:</b> {{ "@" ~ info["username"] if info.get("username") else "No username" }}<br>
+                        <b>Free:</b> 
+                            {% if until %}
+                                until {{ until }} ({{ ((until - now).total_seconds() // 60)|int }} mins left)
+                            {% else %}
+                                forever
+                            {% endif %}
+                    </div>
                 {% endfor %}
             </div>
         {% endfor %}
     {% else %}
         <p>No users currently free in any group. 💤</p>
     {% endif %}
+
     <div class="footer">
         🔐 This viewer is live and private. You are slaying responsibly.
     </div>
@@ -422,7 +551,9 @@ def view_frees():
         gui_template,
         frees=frees,
         group_names=group_names,
+        group_icons=group_icons,  # new!
         user_info_cache=user_info_cache,
+        now=datetime.now(timezone.utc),  # for time remaining calc
     )
 
 
