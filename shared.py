@@ -1,0 +1,1 @@
+frees = {}  # Structure: {chat_id: {user_id: until_datetime_or_None}}
