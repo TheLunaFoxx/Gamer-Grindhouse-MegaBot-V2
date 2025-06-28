@@ -145,7 +145,8 @@ async def approve_or_reject(_, msg: Message):
         )
 
     if msg.text.lower().startswith("approve"):
-        if user_id != "TestLunaFoxx":
+        user_info = await app.get_users(user_id)
+        if user_info.username != "TestLunaFoxx":
             approved_users.add(user_id)
             with open(LOG_FILE, "a") as f:
                 f.write(f"{user_id}\n")
@@ -542,21 +543,29 @@ gui_template = """
 </html>
 """
 
-# Flask route to view the frees
 @flask_app.route("/")
 def view_frees():
     return render_template_string(
         gui_template,
         frees=frees,
         group_names=group_names,
-        group_icons=group_icons,  # new!
+        group_icons=group_icons,
         user_info_cache=user_info_cache,
-        now=datetime.now(timezone.utc),  # for time remaining calc
+        now=datetime.now(timezone.utc),
     )
 
-
-# Thread to run the Flask app
-
+@flask_app.route("/export")
+def export():
+    try:
+        with open(FREES_LOG_FILE, "r") as f:
+            return send_file(
+                io.BytesIO(f.read().encode()),
+                mimetype="text/plain",
+                as_attachment=True,
+                download_name="frees_log.txt"
+            )
+    except Exception as e:
+        return f"Error: {e}", 500
 
 def run_gui():
     flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
