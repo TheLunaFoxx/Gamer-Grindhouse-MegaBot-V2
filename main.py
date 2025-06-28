@@ -1,8 +1,6 @@
 import asyncio
 import os
 import re
-import logging
-logging.basicConfig(level=logging.DEBUG)
 from datetime import datetime, timedelta, timezone
 from pyrogram.enums import ParseMode
 from pyrogram import Client, filters
@@ -49,8 +47,13 @@ def parse_time(text):
 
 @app.on_message(filters.command("start") & filters.private)
 async def start(_, msg: Message):
-    print(f"[DEBUG] /start received from {msg.from_user.id}")
-    await msg.reply_text(f"Welcome to <b>Gamer Grindhouse Network Verification Bot {msg.from_user.mention}!</b> 🎮\n\nClick /verify to continue ❤️", parse_mode=ParseMode.HTML)
+    print(f"[DEBUG] /start command received from: {msg.from_user.id}")
+    try:
+        await msg.reply_text(
+            f"Welcome to <b>Gamer Grindhouse Network Verification Bot {msg.from_user.mention}!</b> 🎮\n\nClick /verify to continue ❤️", parse_mode=ParseMode.HTML
+        )
+    except Exception as e:
+        print(f"[ERROR] Failed to send /start message: {e}")
 
 @app.on_message(filters.command("verify") & filters.private)
 async def verify(_, msg: Message):
@@ -188,7 +191,10 @@ keep_alive()
 
 async def main():
     await app.start()
+    me = await app.get_me()
+    print(f"✅ Logged in as {me.username} ({me.id})")
     await set_bot_user()
+    await app.send_message(OWNER_ID, "👀 Bot is alive, this is a test message.")
     print("🤖 MegaBot is alive and slaying!")
     await asyncio.Event().wait()  # This keeps it alive like idle() used to
 
