@@ -9,8 +9,12 @@ from pyrogram.types import Message
 from keep_alive import keep_alive
 from pyrogram.enums import ChatMemberStatus
 from gui_viewer import run_gui
+from flask import Flask, render_template_string
 import threading
-threading.Thread(target=run_gui).start()
+
+# --- GUI Setup ---
+# Create Flask app
+flask_app = Flask(__name__)
 
 load_dotenv()
 print("API_ID from env:", os.getenv("API_ID"))
@@ -244,7 +248,53 @@ async def view_frees_log(_, msg: Message):
     except Exception as e:
         await msg.reply(f"❌ Couldn't read the log: {e}")
 
+# --- GUI Setup ---
+# Create Flask app
+flask_app = Flask(__name__)
+
+# Basic GUI HTML Template
+gui_template = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frees Viewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0e0e0e; color: #fff; padding: 2em; }
+        h1 { color: #d33682; }
+        .group { margin-bottom: 2em; }
+        .user { margin-left: 1em; }
+    </style>
+</head>
+<body>
+    <h1>👀 Frees Viewer</h1>
+    {% if frees %}
+        {% for chat_id, users in frees.items() %}
+            <div class="group">
+                <h2>Group ID: {{ chat_id }}</h2>
+                {% for user_id, until in users.items() %}
+                    <div class="user">🔓 {{ user_id }} {% if until %}(until {{ until }}){% else %}(free forever){% endif %}</div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No users currently free in any group.</p>
+    {% endif %}
+</body>
+</html>
+"""
+
+# Flask route to view the frees
+@flask_app.route("/")
+def view_frees():
+    return render_template_string(gui_template, frees=frees)
+
+# Thread to run the Flask app
+
+def run_gui():
+    flask_app.run(host="0.0.0.0", port=8080)
+
 keep_alive()
 
+threading.Thread(target=run_gui).start()
 app.run()
 
