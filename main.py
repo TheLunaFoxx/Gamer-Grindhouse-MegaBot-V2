@@ -191,19 +191,10 @@ async def on_chat_member_update(_, event):
                 pass
 
 @app.on_message(filters.private)
-async def catch_all_private(_, msg: Message):
-    print(f"[DEBUG] Received private message: {msg.text} from {msg.from_user.id}")
-    if msg.text.strip().lower() == "/start":
-        print(f"[DEBUG] Triggered /start via fallback handler")
-        await msg.reply_text(
-            f"Welcome to <b>Gamer Grindhouse Network Verification Bot {msg.from_user.mention}!</b> 🎮\n\nClick /verify to continue ❤️", 
-            parse_mode=ParseMode.HTML
-        )
-    elif msg.text.strip().lower() == "/verify":
-        print(f"[DEBUG] Triggered /verify via fallback handler")
-        await verify(_, msg)
-    else:
-        await msg.reply("👀 I see you! But that’s not a valid command. Try /start or /verify!")
+async def all_private(_, msg: Message):
+    print(f"[DEBUG] Raw private message: {msg.text} from {msg.from_user.id}")
+    await msg.reply("👀 I see you! This is the raw message handler working.")
+
 
 keep_alive()
 
