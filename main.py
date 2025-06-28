@@ -14,6 +14,9 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 OWNER_ID = 7868250691
 LOG_FILE = "verified_users.txt"
 
+if not API_ID or not API_HASH or not BOT_TOKEN:
+    raise ValueError("❌ Missing API_ID, API_HASH, or BOT_TOKEN environment variables.")
+
 print("🔧 [DEBUG] ENV Loaded:")
 print("API_ID:", API_ID)
 print("API_HASH:", API_HASH)
@@ -200,6 +203,7 @@ async def main():
     print(f"✅ Logged in as {me.username} ({me.id})")
     await set_bot_user()
     await app.send_message(OWNER_ID, "👀 Bot is alive, this is a test message.")
+    print("📩 Sent alive confirmation to OWNER_ID")
     print("🤖 MegaBot is alive and slaying!")
     print("📬 Registered handlers:")
     await asyncio.Event().wait()  # This keeps it alive like idle() used to
