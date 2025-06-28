@@ -1,4 +1,5 @@
 pyrogram
 tgcrypto; platform_system != "Windows"
+python-dotenv
 pyaes
 flask
