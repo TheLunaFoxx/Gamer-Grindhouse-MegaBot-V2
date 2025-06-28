@@ -187,6 +187,11 @@ async def on_chat_member_update(_, event):
             except:
                 pass
 
+@app.on_message(filters.private)
+async def catch_all_private(_, msg: Message):
+    print(f"[DEBUG] Private message received: {msg.text} from {msg.from_user.id}")
+    await msg.reply("👀 I see you! But that’s not a valid command. Try /start or /verify!")
+
 keep_alive()
 
 async def main():
@@ -196,6 +201,8 @@ async def main():
     await set_bot_user()
     await app.send_message(OWNER_ID, "👀 Bot is alive, this is a test message.")
     print("🤖 MegaBot is alive and slaying!")
+    print("📬 Registered handlers:")
+    print(app.handlers["message"])
     await asyncio.Event().wait()  # This keeps it alive like idle() used to
 
 asyncio.run(main())
