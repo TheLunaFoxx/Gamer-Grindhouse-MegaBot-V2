@@ -6,9 +6,9 @@ from datetime import datetime, timedelta, timezone
 from pyrogram.enums import ParseMode
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from keep_alive import keep_alive
+from merged_gui_keepalive import keep_alive
+from merged_gui_keepalive import keep_alive
 from pyrogram.enums import ChatMemberStatus
-from gui_viewer import run_gui
 from flask import Flask, render_template_string
 import threading
 
