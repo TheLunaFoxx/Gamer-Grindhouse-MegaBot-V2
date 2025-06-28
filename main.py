@@ -8,6 +8,9 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from keep_alive import keep_alive
 from pyrogram.enums import ChatMemberStatus
+from gui_viewer import run_gui
+import threading
+threading.Thread(target=run_gui).start()
 
 load_dotenv()
 print("API_ID from env:", os.getenv("API_ID"))
