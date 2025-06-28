@@ -6,9 +6,6 @@ from datetime import datetime, timezone
 import os
 from shared import frees
 
-# Update this with your frees dict if needed
-from main import frees  # circular import is okay in this context
-
 app = Flask(__name__)
 
 @app.route("/gui")
