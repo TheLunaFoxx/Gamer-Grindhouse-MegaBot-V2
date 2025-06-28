@@ -1,6 +1,8 @@
 import asyncio
 import os
 import re
+import logging
+logging.basicConfig(level=logging.DEBUG)
 from datetime import datetime, timedelta, timezone
 from pyrogram.enums import ParseMode
 from pyrogram import Client, filters
