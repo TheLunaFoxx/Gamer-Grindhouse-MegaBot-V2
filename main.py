@@ -166,14 +166,28 @@ async def unfree_all(_, msg: Message):
 
 @app.on_message(filters.group)
 async def auto_delete(_, msg: Message):
-    if msg.from_user.id in frees:
-        until = frees[msg.from_user.id]
+    user_id = msg.from_user.id
+
+    # Bots and the owner don't get checked
+    if user_id == OWNER_ID or msg.from_user.is_bot:
+        return
+
+    # If user is in frees dict, check if their time is still valid
+    if user_id in frees:
+        until = frees[user_id]
         if until and datetime.now(timezone.utc) > until:
-            del frees[msg.from_user.id]
+            # Free has expired
+            del frees[user_id]
         else:
-            try:
-                await msg.delete()
-            except: pass
+            # User is currently free – do nothing
+            return
+
+    # If they're not in frees, or their free expired – delete their message
+    try:
+        await msg.delete()
+        print(f"[DEBUG] Deleted message from {user_id} (not free)")
+    except Exception as e:
+        print(f"[ERROR] Couldn't delete message from {user_id}: {e}")
 
 @app.on_chat_member_updated()
 async def on_chat_member_update(_, event):
