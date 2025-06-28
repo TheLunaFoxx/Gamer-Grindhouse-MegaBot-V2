@@ -199,27 +199,27 @@ async def auto_delete(_, msg: Message):
 
 @app.on_chat_member_updated()
 async def on_chat_member_update(_, event):
-    global BOT_USER
     user = event.new_chat_member.user
     chat_id = event.chat.id
 
-    if user.id == BOT_USER:
-        async for member in app.get_chat_members(chat_id):
-            if member.user.is_bot or member.user.id == OWNER_ID or member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
-                continue
-            frees[member.user.id] = None
-        await app.send_message(chat_id, "<b>👋 Bot added to group. All non-admin users unfree'd by default.</b>", parse_mode=ParseMode.HTML)
-    elif user.id != OWNER_ID and event.new_chat_member.status == ChatMemberStatus.MEMBER:
+    # Only act on NEW joiners
+    if event.old_chat_member.status not in ("member", "restricted") and event.new_chat_member.status == "member":
+
+        # Skip owner, admins, bots
         member = await app.get_chat_member(chat_id, user.id)
-        if member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
-            frees.setdefault(chat_id, {})[user.id] = None
-            print(f"[DEBUG] New user {user.id} added to frees list")
-            try:
-                sent = await app.send_message(chat_id, f"❌ <b>{user.mention} has been unfree'd.</b> They must complete POP to post if they are a model!", parse_mode=ParseMode.HTML)
-                await asyncio.sleep(30)
-                await sent.delete()
-            except:
-                pass
+        if member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER) or user.is_bot or user.id == OWNER_ID:
+            return
+
+        # Remove from the group's frees list if present
+        if user.id in frees.get(chat_id, {}):
+            del frees[chat_id][user.id]
+
+        await app.send_message(
+            chat_id,
+            f"❌ <b>{user.mention} has been unfree'd.</b> They must complete POP to post if they are a model!",
+            parse_mode=ParseMode.HTML
+        )
+        print(f"[DEBUG] {user.id} removed from frees[{chat_id}] on join")
 
 @app.on_message(filters.private)
 async def all_private(client, msg: Message):
