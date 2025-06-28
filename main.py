@@ -226,6 +226,18 @@ async def all_private(client, msg: Message):
     except Exception as e:
         print(f"[ERROR] while handling private message: {e}")
 
+@app.on_message(filters.command("view_frees") & filters.private & filters.user(OWNER_ID))
+async def view_frees_log(_, msg: Message):
+    try:
+        with open("/data/frees_log.txt", "r") as f:
+            content = f.read()
+            if not content:
+                await msg.reply("📂 Log is empty, baby!")
+            else:
+                await msg.reply(f"📄 <b>frees_log.txt:</b>\n<code>{content}</code>", parse_mode=ParseMode.HTML)
+    except Exception as e:
+        await msg.reply(f"❌ Couldn't read the log: {e}")
+
 keep_alive()
 
 app.run()
