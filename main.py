@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import threading
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 from pyrogram.enums import ParseMode
@@ -10,7 +11,7 @@ from merged_gui_keepalive import keep_alive
 from merged_gui_keepalive import keep_alive
 from pyrogram.enums import ChatMemberStatus
 from flask import Flask, render_template_string
-import threading
+from shared import frees
 
 # --- GUI Setup ---
 # Create Flask app
@@ -41,7 +42,6 @@ app = Client(
     bot_token=os.getenv("BOT_TOKEN")
 )
 
-frees = {}
 verifying = {}
 approved_users = set()
 verification_map = {}
