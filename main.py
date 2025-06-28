@@ -10,7 +10,7 @@ print("🔧 [DEBUG] TEST BOT LAUNCH")
 print("API_ID:", API_ID)
 print("BOT_TOKEN:", "HIDDEN" if BOT_TOKEN else "Missing")
 
-app = Client("testbot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("session/megabot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 @app.on_message(filters.private)
 async def reply_debug(_, msg: Message):
