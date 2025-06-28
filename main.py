@@ -202,7 +202,6 @@ async def main():
     await app.send_message(OWNER_ID, "👀 Bot is alive, this is a test message.")
     print("🤖 MegaBot is alive and slaying!")
     print("📬 Registered handlers:")
-    print(app.handlers["message"])
     await asyncio.Event().wait()  # This keeps it alive like idle() used to
 
 asyncio.run(main())
