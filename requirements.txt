@@ -1,5 +1,12 @@
-pyrogram
-tgcrypto; platform_system != "Windows"
-python-dotenv
-pyaes
-flask
+blinker==1.9.0
+click==8.2.1
+colorama==0.4.6
+Flask==3.1.1
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.2
+pyaes==1.6.1
+Pyrogram==2.0.106
+PySocks==1.7.1
+python-dotenv==1.1.1
+Werkzeug==3.1.3
