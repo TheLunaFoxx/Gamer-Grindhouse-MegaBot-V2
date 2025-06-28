@@ -37,6 +37,7 @@ frees = {}
 verifying = {}
 approved_users = set()
 verification_map = {}
+FREES_LOG_FILE = "frees_log.txt"
 
 BOT_USER = None
 
@@ -135,6 +136,8 @@ async def free(_, msg: Message):
 
     until = None if msg.command[2] == "0" else datetime.now(timezone.utc) + tdelta
     frees[target.id] = until
+    with open(FREES_LOG_FILE, "a") as log:
+        log.write(f"FREED {target.id} until {until if until else 'forever'} at {datetime.now()}\n")
     await msg.reply(f"✅ <b>{target.mention} has been free'd</b> {'forever' if until is None else f'until {until}'}", parse_mode=ParseMode.HTML)
 
 @app.on_message(filters.command("unfree") & filters.group)
@@ -151,6 +154,8 @@ async def unfree(_, msg: Message):
 
     if target.id in frees:
         del frees[target.id]
+        with open(FREES_LOG_FILE, "a") as log:
+            log.write(f"UNFREED {target.id} ({target.first_name} @{target.username}) at {datetime.now()}\n")
         await msg.reply(f"❌ <b>{target.mention} has been unfree'd.</b>", parse_mode=ParseMode.HTML)
 
 @app.on_message(filters.command("unfree_all") & filters.group)
@@ -159,6 +164,8 @@ async def unfree_all(_, msg: Message):
     if msg.from_user.id != OWNER_ID and chat_member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
         return
     frees.clear()
+    with open(FREES_LOG_FILE, "a") as log:
+        log.write(f"UNFREED ALL at {datetime.now()}\n")
     await msg.reply("🧹 <b>All users have been unfree'd.</b>", parse_mode=ParseMode.HTML)
 
 @app.on_message(filters.group)
