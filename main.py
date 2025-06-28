@@ -246,17 +246,58 @@ async def view_frees_log(_, msg: Message):
     except Exception as e:
         await msg.reply(f"❌ Couldn't read the log: {e}")
 
-# Basic GUI HTML Template
 gui_template = """
 <!DOCTYPE html>
 <html>
 <head>
     <title>Frees Viewer</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0e0e0e; color: #fff; padding: 2em; }
-        h1 { color: #d33682; }
-        .group { margin-bottom: 2em; }
-        .user { margin-left: 1em; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #121212;
+            color: #f2f2f2;
+            padding: 2em;
+        }
+
+        h1 {
+            color: #ff5fcf;
+            font-size: 2.5em;
+            border-bottom: 2px solid #ff5fcf;
+            padding-bottom: 0.2em;
+            margin-bottom: 1em;
+        }
+
+        .group {
+            margin-bottom: 2em;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1em;
+            background: #1e1e1e;
+        }
+
+        .group h2 {
+            color: #76e0ff;
+            margin-bottom: 0.5em;
+        }
+
+        .user {
+            margin-left: 1em;
+            margin-bottom: 0.3em;
+            font-size: 1.1em;
+            padding-left: 0.5em;
+            border-left: 3px solid #ff5fcf;
+        }
+
+        .footer {
+            margin-top: 2em;
+            font-size: 0.9em;
+            color: #888;
+            text-align: center;
+        }
+
+        code {
+            color: #00ffc3;
+        }
     </style>
 </head>
 <body>
@@ -264,15 +305,18 @@ gui_template = """
     {% if frees %}
         {% for chat_id, users in frees.items() %}
             <div class="group">
-                <h2>Group ID: {{ chat_id }}</h2>
+                <h2>📢 Group ID: <code>{{ chat_id }}</code></h2>
                 {% for user_id, until in users.items() %}
-                    <div class="user">🔓 {{ user_id }} {% if until %}(until {{ until }}){% else %}(free forever){% endif %}</div>
+                    <div class="user">🔓 <b>User:</b> <code>{{ user_id }}</code> — {% if until %}<i>free until</i> <code>{{ until }}</code>{% else %}<i>free forever</i>{% endif %}</div>
                 {% endfor %}
             </div>
         {% endfor %}
     {% else %}
-        <p>No users currently free in any group.</p>
+        <p>No users currently free in any group. 💤</p>
     {% endif %}
+    <div class="footer">
+        🔐 This viewer is live and private. You are slaying responsibly.
+    </div>
 </body>
 </html>
 """
