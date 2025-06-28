@@ -8,7 +8,6 @@ from pyrogram.enums import ParseMode
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from merged_gui_keepalive import keep_alive
-from merged_gui_keepalive import keep_alive
 from pyrogram.enums import ChatMemberStatus
 from flask import Flask, render_template_string
 from shared import frees
