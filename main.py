@@ -294,6 +294,7 @@ async def on_chat_member_update(_, event):
         return
 
     user = event.new_chat_member.user
+    chat_id = event.chat.id
 
     if user.id not in user_info_cache:
         try:
@@ -307,9 +308,6 @@ async def on_chat_member_update(_, event):
             }
         except Exception as e:
             print(f"[ERROR] Failed to cache member info for {user.id}: {e}")
-
-    chat_id = event.chat.id
-
 
     # Only act on NEW joiners
     if (
