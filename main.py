@@ -25,6 +25,15 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 OWNER_ID = 7868250691
 LOG_FILE = "verified_users.txt"
 
+# --- Bot State + Cache ---
+user_info_cache = {}  # {user_id: {"first": ..., "last": ..., "username": ...}}
+verifying = {}
+approved_users = set()
+verification_map = {}
+FREES_LOG_FILE = "/data/frees_log.txt"
+group_names = {}
+BOT_USER = None
+
 if not API_ID or not API_HASH or not BOT_TOKEN:
     raise ValueError("❌ Missing API_ID, API_HASH, or BOT_TOKEN environment variables.")
 
@@ -39,14 +48,6 @@ app = Client(
     api_hash=os.getenv("API_HASH"),
     bot_token=os.getenv("BOT_TOKEN")
 )
-
-verifying = {}
-approved_users = set()
-verification_map = {}
-FREES_LOG_FILE = "/data/frees_log.txt"
-group_names = {}
-
-BOT_USER = None
 
 async def set_bot_user():
     global BOT_USER
@@ -133,6 +134,12 @@ async def free(_, msg: Message):
 
     try:
         target = await app.get_users(msg.command[1])
+        # 🌟 Cache user info for GUI display
+        user_info_cache[target.id] = {
+            "first": target.first_name or "",
+            "last": target.last_name or "",
+            "username": target.username or None
+        }
     except:
         await msg.reply("❌ <b>Couldn't find that user.</b>", parse_mode=ParseMode.HTML)
         return
@@ -146,8 +153,10 @@ async def free(_, msg: Message):
     group_frees = frees.setdefault(chat_id, {})
     group_frees[target.id] = until
 
-    await msg.reply(f"✅ <b>{target.mention} has been free'd</b> {'forever' if until is None else f'until {until}'}", parse_mode=ParseMode.HTML)
-
+    await msg.reply(
+        f"✅ <b>{target.mention} has been free'd</b> {'forever' if until is None else f'until {until}'}",
+        parse_mode=ParseMode.HTML
+    )
 
 @app.on_message(filters.command("unfree") & filters.group)
 async def unfree(_, msg: Message):
@@ -323,9 +332,15 @@ gui_template = """
     {% if frees %}
         {% for chat_id, users in frees.items() %}
             <div class="group">
-                <h2>📢 Group ID: <code>{{ chat_id }}</code></h2>
+                <h2>📢 {{ group_names.get(chat_id, 'Group ' ~ chat_id) }}</h2>
                 {% for user_id, until in users.items() %}
-                    <div class="user">🔓 <b>User:</b> <code>{{ user_id }}</code> — {% if until %}<i>free until</i> <code>{{ until }}</code>{% else %}<i>free forever</i>{% endif %}</div>
+                    <div class="user">
+    🔓 <b>User ID:</b> {{ user_id }}<br>
+    {% set info = user_info_cache.get(user_id, {}) %}
+    <b>Name:</b> {{ info.get("first", "Unknown") }} {{ info.get("last", "") }}<br>
+    <b>Username:</b> {{ "@" ~ info["username"] if info.get("username") else "No username" }}<br>
+    <b>Free:</b> {% if until %}until {{ until }}{% else %}forever{% endif %}
+</div>
                 {% endfor %}
             </div>
         {% endfor %}
@@ -342,7 +357,7 @@ gui_template = """
 # Flask route to view the frees
 @flask_app.route("/")
 def view_frees():
-    return render_template_string(gui_template, frees=frees, group_names=group_names)
+    return render_template_string(gui_template, frees=frees, group_names=group_names, user_info_cache=user_info_cache)
 
 # Thread to run the Flask app
 
