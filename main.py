@@ -44,6 +44,7 @@ verifying = {}
 approved_users = set()
 verification_map = {}
 FREES_LOG_FILE = "/data/frees_log.txt"
+group_names = {}
 
 BOT_USER = None
 
@@ -177,10 +178,14 @@ async def unfree_all(_, msg: Message):
     frees[chat_id] = {}
     await msg.reply("🧹 <b>All users have been unfree'd.</b>", parse_mode=ParseMode.HTML)
 
-@app.on_message(filters.group)
+@app.on_message(filters.group) 
 async def auto_delete(_, msg: Message):
     chat_id = msg.chat.id
     user_id = msg.from_user.id
+
+    # ✅ Store group name for GUI
+    if chat_id not in group_names:
+        group_names[chat_id] = msg.chat.title or f"Group {chat_id}"
 
     # Skip bots and owner
     if user_id == OWNER_ID or msg.from_user.is_bot:
@@ -204,6 +209,14 @@ async def auto_delete(_, msg: Message):
 
 @app.on_chat_member_updated()
 async def on_chat_member_update(_, event):
+    if not event.new_chat_member or not event.old_chat_member:
+        print("[WARN] Chat member update missing data — skipping.")
+        return
+
+    if not event.new_chat_member.user:
+        print("[WARN] new_chat_member has no user info.")
+        return
+
     user = event.new_chat_member.user
     chat_id = event.chat.id
 
@@ -211,11 +224,16 @@ async def on_chat_member_update(_, event):
     if event.old_chat_member.status not in ("member", "restricted") and event.new_chat_member.status == "member":
 
         # Skip owner, admins, bots
-        member = await app.get_chat_member(chat_id, user.id)
+        try:
+            member = await app.get_chat_member(chat_id, user.id)
+        except Exception as e:
+            print(f"[ERROR] Failed to get member info: {e}")
+            return
+
         if member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER) or user.is_bot or user.id == OWNER_ID:
             return
 
-        # Remove from the group's frees list if present
+        # Remove from frees
         if user.id in frees.get(chat_id, {}):
             del frees[chat_id][user.id]
 
@@ -324,7 +342,7 @@ gui_template = """
 # Flask route to view the frees
 @flask_app.route("/")
 def view_frees():
-    return render_template_string(gui_template, frees=frees)
+    return render_template_string(gui_template, frees=frees, group_names=group_names)
 
 # Thread to run the Flask app
 
