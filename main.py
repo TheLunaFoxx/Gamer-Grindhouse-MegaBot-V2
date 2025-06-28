@@ -120,7 +120,8 @@ async def approve_or_reject(_, msg: Message):
 
 @app.on_message(filters.command("free") & filters.group)
 async def free(_, msg: Message):
-    chat_member = await app.get_chat_member(msg.chat.id, msg.from_user.id)
+    chat_id = msg.chat.id
+    chat_member = await app.get_chat_member(chat_id, msg.from_user.id)
     if msg.from_user.id != OWNER_ID and chat_member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
         return
 
@@ -136,14 +137,16 @@ async def free(_, msg: Message):
         return
 
     until = None if msg.command[2] == "0" else datetime.now(timezone.utc) + tdelta
-    frees[target.id] = until
-    with open(FREES_LOG_FILE, "a") as log:
-        log.write(f"FREED {target.id} until {until if until else 'forever'} at {datetime.now()}\n")
+    group_frees = frees.setdefault(chat_id, {})
+    group_frees[target.id] = until
+
     await msg.reply(f"✅ <b>{target.mention} has been free'd</b> {'forever' if until is None else f'until {until}'}", parse_mode=ParseMode.HTML)
+
 
 @app.on_message(filters.command("unfree") & filters.group)
 async def unfree(_, msg: Message):
-    chat_member = await app.get_chat_member(msg.chat.id, msg.from_user.id)
+    chat_id = msg.chat.id
+    chat_member = await app.get_chat_member(chat_id, msg.from_user.id)
     if msg.from_user.id != OWNER_ID and chat_member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
         return
 
@@ -153,46 +156,46 @@ async def unfree(_, msg: Message):
         await msg.reply("❌ <b>Couldn't find that user.</b>", parse_mode=ParseMode.HTML)
         return
 
-    if target.id in frees:
-        del frees[target.id]
-        with open(FREES_LOG_FILE, "a") as log:
-            log.write(f"UNFREED {target.id} ({target.first_name} @{target.username}) at {datetime.now()}\n")
+    group_frees = frees.get(chat_id, {})
+    if target.id in group_frees:
+        del group_frees[target.id]
         await msg.reply(f"❌ <b>{target.mention} has been unfree'd.</b>", parse_mode=ParseMode.HTML)
+
 
 @app.on_message(filters.command("unfree_all") & filters.group)
 async def unfree_all(_, msg: Message):
-    chat_member = await app.get_chat_member(msg.chat.id, msg.from_user.id)
+    chat_id = msg.chat.id
+    chat_member = await app.get_chat_member(chat_id, msg.from_user.id)
     if msg.from_user.id != OWNER_ID and chat_member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
         return
-    frees.clear()
-    with open(FREES_LOG_FILE, "a") as log:
-        log.write(f"UNFREED ALL at {datetime.now()}\n")
+
+    frees[chat_id] = {}
     await msg.reply("🧹 <b>All users have been unfree'd.</b>", parse_mode=ParseMode.HTML)
 
 @app.on_message(filters.group)
 async def auto_delete(_, msg: Message):
+    chat_id = msg.chat.id
     user_id = msg.from_user.id
 
-    # Bots and the owner don't get checked
+    # Skip bots and owner
     if user_id == OWNER_ID or msg.from_user.is_bot:
         return
 
-    # If user is in frees dict, check if their time is still valid
-    if user_id in frees:
-        until = frees[user_id]
-        if until and datetime.now(timezone.utc) > until:
-            # Free has expired
-            del frees[user_id]
-        else:
-            # User is currently free – do nothing
-            return
+    group_frees = frees.get(chat_id, {})
 
-    # If they're not in frees, or their free expired – delete their message
+    if user_id in group_frees:
+        until = group_frees[user_id]
+        if until and datetime.now(timezone.utc) > until:
+            del group_frees[user_id]
+        else:
+            return  # User is free, do nothing
+
+    # User is not free — delete message
     try:
         await msg.delete()
-        print(f"[DEBUG] Deleted message from {user_id} (not free)")
+        print(f"[DEBUG] Deleted message from {user_id} in {chat_id}")
     except Exception as e:
-        print(f"[ERROR] Couldn't delete message from {user_id}: {e}")
+        print(f"[ERROR] Couldn't delete message from {user_id} in {chat_id}: {e}")
 
 @app.on_chat_member_updated()
 async def on_chat_member_update(_, event):
@@ -209,7 +212,7 @@ async def on_chat_member_update(_, event):
     elif user.id != OWNER_ID and event.new_chat_member.status == ChatMemberStatus.MEMBER:
         member = await app.get_chat_member(chat_id, user.id)
         if member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
-            frees[user.id] = None
+            frees.setdefault(chat_id, {})[user.id] = None
             print(f"[DEBUG] New user {user.id} added to frees list")
             try:
                 sent = await app.send_message(chat_id, f"❌ <b>{user.mention} has been unfree'd.</b> They must complete POP to post if they are a model!", parse_mode=ParseMode.HTML)
